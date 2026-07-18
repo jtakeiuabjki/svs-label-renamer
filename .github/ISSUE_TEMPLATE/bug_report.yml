@@ -1,5 +1,5 @@
 name: Bug report
-description: SVS Label Renamerの不具合を報告します
+description: SVS Label Renamer for macOSの不具合を報告します
 title: "[Bug]: "
 labels: [bug]
 body:

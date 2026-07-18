@@ -2,7 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP_NAME="SVS Label Renamer"
+APP_NAME="SVS Label Renamer for macOS"
+ARCHIVE_NAME="SVSLabelRenamer-for-macOS.zip"
 APP="$ROOT/dist/$APP_NAME.app"
 IDENTITY="${CODESIGN_IDENTITY:--}"
 
@@ -51,6 +52,6 @@ fi
 
 codesign --verify --deep --strict --verbose=2 "$APP"
 ditto -c -k --sequesterRsrc --keepParent "$APP" \
-    "$ROOT/dist/SVSLabelRenamer-macOS.zip"
+    "$ROOT/dist/$ARCHIVE_NAME"
 echo "Built: $APP"
-echo "Archive: $ROOT/dist/SVSLabelRenamer-macOS.zip"
+echo "Archive: $ROOT/dist/$ARCHIVE_NAME"

@@ -9,7 +9,7 @@ struct ContentView: View {
         VStack(spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("SVS Label Renamer").font(.title2).fontWeight(.semibold)
+                    Text("SVS Label Renamer for macOS").font(.title2).fontWeight(.semibold)
                     Text(model.messageText).foregroundStyle(.secondary)
                 }
                 Spacer()
