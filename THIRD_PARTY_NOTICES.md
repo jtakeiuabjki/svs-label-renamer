@@ -1,6 +1,6 @@
 # Third-party notices
 
-SVS Label Renamer bundles the official OpenSlide binary distribution.
+SVS Label Renamer for macOS bundles the official OpenSlide binary distribution.
 
 - OpenSlide binary release: `openslide-bin 4.0.1.2` (OpenSlide 4.0.1)
 - Binary archive: <https://github.com/openslide/openslide-bin/releases/download/v4.0.1.2/openslide-bin-4.0.1.2-macos-arm64-x86_64.tar.xz>

@@ -1,9 +1,9 @@
-# SVS Label Renamer
+# SVS Label Renamer for macOS
 
 SVSファイルのラベルを読み取り、安全なファイル名を提案するmacOSアプリです。ラベル画像、macro画像、WSI本体の低倍率全体像をPNGで保存し、変更前後の名前をCSVに記録します。処理はMac内で完結し、日本語／Englishを画面右上で切り替えられます。
 
 > [!IMPORTANT]
-> 現在はベータ版（v0.2.0）です。OCR結果と画質警告を確認してから名前を変更してください。本アプリの画質スクリーニングは診断用の品質保証ではありません。
+> 現在はベータ版（v0.2.1）です。OCR結果と画質警告を確認してから名前を変更してください。本アプリの画質スクリーニングは診断用の品質保証ではありません。
 
 ## 主な機能
 
@@ -30,13 +30,13 @@ Python、Homebrew、OpenSlideの追加インストールは不要です。
 
 ## ダウンロードと起動
 
-1. [GitHub Releases](https://github.com/jtakeiuabjki/svs-label-renamer/releases)から`SVSLabelRenamer-macOS.zip`をダウンロードします。
-2. ZIPを展開し、`SVS Label Renamer.app`をダブルクリックします。インストーラーはなく、アプリは任意の場所から起動できます。
+1. [GitHub Releases](https://github.com/jtakeiuabjki/svs-label-renamer-for-macos/releases)から`SVSLabelRenamer-for-macOS.zip`をダウンロードします。
+2. ZIPを展開し、`SVS Label Renamer for macOS.app`をダブルクリックします。インストーラーはなく、アプリは任意の場所から起動できます。
 
-v0.2.0配布ZIPのSHA-256は`1da9c10e12c9de1e0d60a38a16005d40acc8fbcf0b4bb5e27bb0a741dda9ff6d`です。ダウンロード後に確認する場合は、ターミナルで次を実行します。
+v0.2.1配布ZIPのSHA-256は`21eace91dbc84c95d6c9f82d28042218a425660b70cd94be1d6fca6441bc833b`です。ダウンロード後に確認する場合は、ターミナルで次を実行します。
 
 ```bash
-shasum -a 256 ~/Downloads/SVSLabelRenamer-macOS.zip
+shasum -a 256 ~/Downloads/SVSLabelRenamer-for-macOS.zip
 ```
 
 この配布版はアドホック署名済みですが、Appleによる公証（notarization）はまだ行っていません。初回起動をmacOSに止められた場合は、一度起動を試したあと、`システム設定` → `プライバシーとセキュリティ` → `このまま開く`を選んでください。詳しくは[Appleの案内](https://support.apple.com/102445)を参照してください。信頼できるGitHub Releaseから取得したファイルだけを開いてください。
@@ -105,10 +105,10 @@ bash scripts/build_app.sh
 
 ## English
 
-SVS Label Renamer is a standalone macOS app that reads slide labels, proposes filenames, exports label/macro/low-magnification WSI overview PNGs, and records rename results in CSV. OCR and quality screening run locally with Apple Vision. Use the control in the upper-right corner to switch between Japanese and English.
+SVS Label Renamer for macOS is a standalone app that reads slide labels, proposes filenames, exports label/macro/low-magnification WSI overview PNGs, and records rename results in CSV. OCR and quality screening run locally with Apple Vision. Use the control in the upper-right corner to switch between Japanese and English.
 
 > [!IMPORTANT]
-> This is a beta release (v0.2.0). Review every OCR result and warning before renaming. Quality screening is a non-diagnostic review aid.
+> This is a beta release (v0.2.1). Review every OCR result and warning before renaming. Quality screening is a non-diagnostic review aid.
 
 ### Requirements and download
 
@@ -116,9 +116,9 @@ SVS Label Renamer is a standalone macOS app that reads slide labels, proposes fi
 - Apple Silicon or Intel Mac
 - No Python, Homebrew, or separate OpenSlide installation
 
-Download `SVSLabelRenamer-macOS.zip` from [GitHub Releases](https://github.com/jtakeiuabjki/svs-label-renamer/releases), unzip it, and open `SVS Label Renamer.app`. No installer is required.
+Download `SVSLabelRenamer-for-macOS.zip` from [GitHub Releases](https://github.com/jtakeiuabjki/svs-label-renamer-for-macos/releases), unzip it, and open `SVS Label Renamer for macOS.app`. No installer is required.
 
-SHA-256 for the v0.2.0 ZIP: `1da9c10e12c9de1e0d60a38a16005d40acc8fbcf0b4bb5e27bb0a741dda9ff6d`
+SHA-256 for the v0.2.1 ZIP: `21eace91dbc84c95d6c9f82d28042218a425660b70cd94be1d6fca6441bc833b`
 
 The current build is ad-hoc signed but not Apple-notarized. If macOS blocks the first launch, try opening the app once, then go to `System Settings` → `Privacy & Security` → `Open Anyway`. See [Apple's guidance](https://support.apple.com/102445), and only open a build obtained from a GitHub Release you trust.
 
