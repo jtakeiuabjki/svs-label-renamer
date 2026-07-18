@@ -12,7 +12,7 @@ private struct RenameTransaction: Codable {
     let operations: [RenameOperation]
 }
 
-enum RenameTransactionError: LocalizedError, Equatable {
+enum RenameTransactionError: LocalizedError, Equatable, Sendable {
     case empty
     case duplicateDestination(String)
     case missingSource(String)
@@ -32,6 +32,21 @@ enum RenameTransactionError: LocalizedError, Equatable {
         case .logFailure(let message): "変更記録を保存できません: \(message)"
         case .moveFailure(let message): "名前変更に失敗しました: \(message)"
         case .rollbackFailure(let message): "復元に失敗しました。transaction記録を確認してください: \(message)"
+        }
+    }
+
+    func localized(_ language: AppLanguage) -> String {
+        switch (language, self) {
+        case (.japanese, _): return errorDescription ?? "名前変更に失敗しました"
+        case (.english, .empty): return "There are no confirmed files ready to rename"
+        case (.english, .duplicateDestination(let name)): return "Duplicate resulting filename: \(name)"
+        case (.english, .missingSource(let name)): return "Original file is missing: \(name)"
+        case (.english, .emptySource(let name)): return "The file is not fully downloaded: \(name)"
+        case (.english, .destinationExists(let name)): return "A file with that name already exists: \(name)"
+        case (.english, .logFailure(let detail)): return "Could not save the rename record: \(detail)"
+        case (.english, .moveFailure(let detail)): return "Rename failed: \(detail)"
+        case (.english, .rollbackFailure(let detail)):
+            return "Restore failed. Check the transaction record: \(detail)"
         }
     }
 }

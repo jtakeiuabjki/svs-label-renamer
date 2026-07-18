@@ -10,22 +10,34 @@ struct ContentView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("SVS Label Renamer").font(.title2).fontWeight(.semibold)
-                    Text(model.message).foregroundStyle(.secondary)
+                    Text(model.messageText).foregroundStyle(.secondary)
                 }
                 Spacer()
+                Picker(L10n.text(.language, language: model.language), selection: $model.language) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(language.displayName).tag(language)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+                .help(L10n.text(.language, language: model.language))
                 if !model.records.isEmpty || model.isWorking {
-                    Button("別のフォルダを選択", action: model.chooseFolder)
+                    Button(t(.anotherFolder), action: model.chooseFolder)
                         .buttonStyle(.borderedProminent)
                         .disabled(model.isWorking)
                 }
                 if model.isWorking {
-                    Button("キャンセル", action: model.cancelScan)
+                    Button(t(.cancel), action: model.cancelScan)
                 }
             }
 
             if model.isWorking {
                 ProgressView(value: Double(model.completedCount), total: Double(max(model.totalCount, 1))) {
-                    Text("\(model.completedCount) / \(model.totalCount) 件")
+                    Text(String(
+                        format: t(.progressCount),
+                        Int64(model.completedCount), Int64(model.totalCount)
+                    ))
                 }
             }
 
@@ -35,15 +47,15 @@ struct ContentView: View {
                         .font(.system(size: 48, weight: .light))
                         .foregroundStyle(.tint)
                     VStack(spacing: 6) {
-                        Text("SVSフォルダをここにドロップ")
+                        Text(t(.dropFolder))
                             .font(.title3.weight(.semibold))
-                        Text("または、フォルダを選択してください")
+                        Text(t(.orChooseFolder))
                             .foregroundStyle(.secondary)
                     }
-                    Button("フォルダを選択", action: model.chooseFolder)
+                    Button(t(.chooseFolder), action: model.chooseFolder)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
-                    Text("元のSVSは、確認ボタンを押すまで変更されません")
+                    Text(t(.sourceSafetyNote))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -56,45 +68,48 @@ struct ContentView: View {
             } else {
                 HSplitView {
                     Table($model.records, selection: $selectedRecordID) {
-                        TableColumn("確認") { $record in
+                        TableColumn(t(.confirmColumn)) { $record in
                             Toggle("", isOn: $record.isConfirmed)
                                 .labelsHidden()
                                 .disabled(!record.extractionSucceeded)
+                                .accessibilityLabel("\(t(.confirmColumn)): \(record.originalFilename)")
                         }.width(44)
-                        TableColumn("元のファイル") { $record in Text(record.originalFilename) }
-                        TableColumn("変更後") { $record in
+                        TableColumn(t(.originalFile)) { $record in Text(record.originalFilename) }
+                        TableColumn(t(.proposedName)) { $record in
                             Text(record.proposedFilename.isEmpty ? "—" : record.proposedFilename)
                                 .foregroundStyle(record.isReadyToRename ? .primary : .secondary)
                                 .textSelection(.enabled)
                         }
-                        TableColumn("状態") { $record in
-                            Label(record.status, systemImage: statusIcon(record))
+                        TableColumn(t(.status)) { $record in
+                            Label(record.localizedStatus(model.language), systemImage: statusIcon(record))
                                 .foregroundStyle(statusColor(record))
                         }
                     }
                     .frame(minWidth: 500)
 
                     if let index = selectedIndex {
-                        RecordDetailView(record: $model.records[index])
+                        RecordDetailView(record: $model.records[index], language: model.language)
                             .frame(minWidth: 340, idealWidth: 400)
                     } else {
                         ContentUnavailableView(
-                            "確認するファイルを選択",
+                            t(.selectFile),
                             systemImage: "photo.on.rectangle.angled",
-                            description: Text("一覧から1件選ぶと、ラベル画像と読み取り結果を確認できます。")
+                            description: Text(t(.selectFileDescription))
                         )
                         .frame(minWidth: 340)
                     }
                 }
 
                 HStack {
-                    Text("ラベルPNG・全体PNG・プレビューCSVは出力フォルダへ保存されます。")
+                    Text(t(.outputNote))
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                     if model.canUndo {
-                        Button("直前の変更を元に戻す", action: confirmUndo)
+                        Button(t(.undoRename), action: confirmUndo)
                     }
-                    Button("確認済み\(model.confirmedCount)件の名前を変更") { confirmRename() }
+                    Button(String(format: t(.renameConfirmed), Int64(model.confirmedCount))) {
+                        confirmRename()
+                    }
                         .buttonStyle(.borderedProminent)
                         .tint(.green)
                         .disabled(model.confirmedCount == 0 || model.isWorking)
@@ -104,6 +119,7 @@ struct ContentView: View {
         .padding(20)
         .frame(minWidth: 900, minHeight: 580)
         .dropDestination(for: URL.self) { urls, _ in
+            guard !model.isWorking else { return false }
             guard let first = urls.first else { return false }
             model.openFolder(first)
             return true
@@ -125,59 +141,71 @@ struct ContentView: View {
         return model.records.firstIndex { $0.id == selectedRecordID }
     }
 
+    private func t(_ key: TextKey) -> String {
+        L10n.text(key, language: model.language)
+    }
+
     private func statusIcon(_ record: SlideRecord) -> String {
-        if record.status == "変更済み" { return "checkmark.circle.fill" }
-        if record.status.hasPrefix("エラー") { return "exclamationmark.triangle.fill" }
-        if record.status == "ダウンロード待ち" { return "icloud.and.arrow.down" }
+        if record.status == .renamed || record.status == .restored { return "checkmark.circle.fill" }
+        if record.status.isError { return "exclamationmark.triangle.fill" }
+        if record.status == .downloadPending { return "icloud.and.arrow.down" }
+        if record.qualityAssessment?.needsReview == true { return "exclamationmark.triangle.fill" }
         return record.isConfirmed ? "checkmark.circle" : "questionmark.circle"
     }
 
     private func statusColor(_ record: SlideRecord) -> Color {
-        if record.status == "変更済み" || record.isConfirmed { return .green }
-        if record.status.hasPrefix("エラー") { return .red }
+        if record.status.isError { return .red }
+        if record.status == .renamed || record.status == .restored { return .green }
+        if record.qualityAssessment?.needsReview == true { return .orange }
+        if record.isConfirmed { return .green }
         return .secondary
     }
 
     private func confirmRename() {
         let alert = NSAlert()
-        alert.messageText = "SVSファイルの名前を変更しますか？"
-        alert.informativeText = "確認済みの\(model.confirmedCount)件だけを変更します。処理前後の名前はCSVとtransaction記録に残ります。"
-        alert.addButton(withTitle: "名前を変更")
-        alert.addButton(withTitle: "キャンセル")
+        alert.messageText = t(.renameAlertTitle)
+        alert.informativeText = String(
+            format: t(.renameAlertDescription), Int64(model.confirmedCount)
+        )
+        alert.addButton(withTitle: t(.renameAction))
+        alert.addButton(withTitle: t(.cancelAction))
         if alert.runModal() == .alertFirstButtonReturn { model.applyRename() }
     }
 
     private func confirmUndo() {
         let alert = NSAlert()
-        alert.messageText = "直前の名前変更を元に戻しますか？"
-        alert.informativeText = "SVSファイルを、直前の変更前の名前へ戻します。履歴はCSVとtransaction記録に残ります。"
-        alert.addButton(withTitle: "元に戻す")
-        alert.addButton(withTitle: "キャンセル")
+        alert.messageText = t(.undoAlertTitle)
+        alert.informativeText = t(.undoAlertDescription)
+        alert.addButton(withTitle: t(.undoAction))
+        alert.addButton(withTitle: t(.cancelAction))
         if alert.runModal() == .alertFirstButtonReturn { model.undoLastRename() }
     }
 }
 
 private struct RecordDetailView: View {
     @Binding var record: SlideRecord
+    let language: AppLanguage
+
+    private func t(_ key: TextKey) -> String { L10n.text(key, language: language) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                ImagePreview(title: "ラベル", url: record.labelImageURL)
+                ImagePreview(title: t(.label), url: record.labelImageURL, maxHeight: 280, language: language)
 
-                GroupBox("読み取り結果") {
+                GroupBox(t(.recognitionResult)) {
                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
                         GridRow {
-                            Text("病理番号").foregroundStyle(.secondary)
-                            TextField("例: K1234", text: $record.pathologyNumber)
+                            Text(t(.pathologyNumber)).foregroundStyle(.secondary)
+                            TextField(t(.pathologyExample), text: $record.pathologyNumber)
                         }
                         GridRow {
-                            Text("ブロック").foregroundStyle(.secondary)
-                            TextField("任意（例: 2、A）", text: $record.blockNumber)
+                            Text(t(.blockNumber)).foregroundStyle(.secondary)
+                            TextField(t(.blockExample), text: $record.blockNumber)
                         }
                         GridRow {
-                            Text("染色").foregroundStyle(.secondary)
-                            TextField("例: CD163", text: $record.stain)
+                            Text(t(.stain)).foregroundStyle(.secondary)
+                            TextField(t(.stainExample), text: $record.stain)
                         }
                     }
                     .textFieldStyle(.roundedBorder)
@@ -185,17 +213,17 @@ private struct RecordDetailView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("変更後の名前").font(.caption).foregroundStyle(.secondary)
+                    Text(t(.resultingName)).font(.caption).foregroundStyle(.secondary)
                     Text(record.proposedFilename.isEmpty ? "—" : record.proposedFilename)
                         .font(.system(.body, design: .monospaced).weight(.medium))
                         .textSelection(.enabled)
                 }
 
-                Toggle("ラベルと変更後の名前を確認しました", isOn: $record.isConfirmed)
+                Toggle(t(.confirmLabelAndName), isOn: $record.isConfirmed)
                     .disabled(!record.extractionSucceeded || record.proposedFilename.isEmpty)
 
-                DisclosureGroup("OCRで読み取った原文") {
-                    Text(record.rawOCR.isEmpty ? "読み取り結果なし" : record.rawOCR)
+                DisclosureGroup(t(.rawOCR)) {
+                    Text(record.rawOCR.isEmpty ? t(.noOCR) : record.rawOCR)
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
@@ -203,8 +231,29 @@ private struct RecordDetailView: View {
                         .padding(.top, 6)
                 }
 
+                if record.overviewImageURL != nil {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ImagePreview(
+                            title: t(.wsiOverview),
+                            url: record.overviewImageURL,
+                            maxHeight: 300,
+                            language: language
+                        )
+                        Text(t(.overviewExplanation))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                QualitySummary(assessment: record.qualityAssessment, language: language)
+
                 if record.macroImageURL != nil {
-                    ImagePreview(title: "全体画像", url: record.macroImageURL)
+                    ImagePreview(
+                        title: t(.macroImage),
+                        url: record.macroImageURL,
+                        maxHeight: 180,
+                        language: language
+                    )
                 }
             }
             .padding(16)
@@ -215,6 +264,8 @@ private struct RecordDetailView: View {
 private struct ImagePreview: View {
     let title: String
     let url: URL?
+    let maxHeight: CGFloat
+    let language: AppLanguage
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -223,14 +274,70 @@ private struct ImagePreview: View {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: title == "ラベル" ? 280 : 180)
+                    .frame(maxWidth: .infinity, maxHeight: maxHeight)
                     .background(Color(nsColor: .controlBackgroundColor))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .accessibilityLabel(title)
             } else {
-                ContentUnavailableView("画像なし", systemImage: "photo")
+                ContentUnavailableView(L10n.text(.noImage, language: language), systemImage: "photo")
                     .frame(maxWidth: .infinity, minHeight: 120)
             }
+        }
+    }
+}
+
+private struct QualitySummary: View {
+    let assessment: QualityAssessment?
+    let language: AppLanguage
+
+    private func t(_ key: TextKey) -> String { L10n.text(key, language: language) }
+
+    var body: some View {
+        GroupBox(t(.qualityTitle)) {
+            VStack(alignment: .leading, spacing: 10) {
+                if let assessment {
+                    Label(
+                        assessment.needsReview ? t(.qualityReview) : t(.qualityGood),
+                        systemImage: assessment.needsReview
+                            ? "exclamationmark.triangle.fill" : "checkmark.circle.fill"
+                    )
+                    .fontWeight(.medium)
+                    .foregroundStyle(assessment.needsReview ? .orange : .green)
+
+                    if assessment.needsReview {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(assessment.flags, id: \.self) { flag in
+                                Text("• \(flag.localized(language))")
+                            }
+                        }
+                    }
+
+                    Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 5) {
+                        metricRow(t(.tissueCoverage), assessment.tissueCoverage, percent: true)
+                        metricRow(t(.brightness), assessment.brightness)
+                        metricRow(t(.contrast), assessment.contrast)
+                        metricRow(t(.sharpness), assessment.sharpness)
+                    }
+                    .font(.caption.monospacedDigit())
+                } else {
+                    Label(t(.qualityUnavailable), systemImage: "questionmark.circle")
+                        .foregroundStyle(.secondary)
+                }
+
+                Text(t(.qualityNonDiagnostic))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
+        }
+    }
+
+    @ViewBuilder
+    private func metricRow(_ label: String, _ value: Double, percent: Bool = false) -> some View {
+        GridRow {
+            Text(label).foregroundStyle(.secondary)
+            Text(percent ? String(format: "%.1f%%", value * 100) : String(format: "%.3f", value))
         }
     }
 }
