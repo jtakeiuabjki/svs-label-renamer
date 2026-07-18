@@ -1,0 +1,6 @@
+.build/
+.build-*/
+.vendor/
+dist/
+.DS_Store
+SVS_Label_Renamer_Output/
